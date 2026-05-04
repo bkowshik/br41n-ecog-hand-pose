@@ -15,7 +15,11 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
 ]
-dependencies = []
+dependencies = [
+    "numpy",
+    "scipy",
+    "matplotlib",
+]
 
 [project.urls]
 Repository = "https://github.com/bkowshik/br41n-ecog-hand-pose"

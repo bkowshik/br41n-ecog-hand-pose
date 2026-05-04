@@ -37,9 +37,10 @@ and reused in later notebooks.
 | `04_epoching` | `epoching` | Cue-locked trial segmentation from CH62 |
 | `05_features` | `features` | Band power, time-frequency, CSP |
 | `06_classification` | `classification` | LDA / SVM / Riemannian baselines |
-| `07_deep_learning` | `deep` | EEGNet / ShallowConvNet end-to-end models |
+| `07_deep_learning` | `dl` | EEGNet / ShallowConvNet end-to-end models |
 | `08_finger_regression` | `regression` | Continuous decoding of glove channels |
 | `09_benchmark` | — | Compare results against published SOTA |
+| `99_acronyms` | — | Appendix: glossary of acronyms used in the project |
 
 ## Developer guide
 
@@ -56,9 +57,12 @@ $ pip install -e .
 $ nbdev-preview
 ```
 
-Day-to-day, after editing any notebook in `nbs/`, sync code + docs +
-tests with:
+Day-to-day commands after editing a notebook in `nbs/`:
 
 ``` sh
+# sync code + docs + tests in one shot (recommended before commits)
 $ nbdev-prepare
+
+# regenerate README.md from index.ipynb only
+$ nbdev-readme
 ```
