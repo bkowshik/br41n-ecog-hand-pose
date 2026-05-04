@@ -1,0 +1,13 @@
+website:
+  sidebar:
+    contents:
+      - index.ipynb
+      - 01_data_loading.ipynb
+      - 02_eda.ipynb
+      - 03_preprocessing.ipynb
+      - 04_epoching.ipynb
+      - 05_features.ipynb
+      - 06_classification.ipynb
+      - 07_deep_learning.ipynb
+      - 08_finger_regression.ipynb
+      - 09_benchmark.ipynb
