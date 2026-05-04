@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "br41n-ecog-hand-pose"
+  site-url: "https://bkowshik.github.io/br41n-ecog-hand-pose"
+  description: "Analyze an ECoG BCI data-set from an epilepsy person in order to optimize pre-processing, feature extraction and classification algorithms. Compare your results with state-of-the-art algorithms."
+  repo-branch: main
+  repo-url: "https://github.com/bkowshik/br41n-ecog-hand-pose"

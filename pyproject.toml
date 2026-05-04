@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "br41n-ecog-hand-pose"
+dynamic = ["version"]
+description = "Analyze an ECoG BCI data-set from an epilepsy person in order to optimize pre-processing, feature extraction and classification algorithms. Compare your results with state-of-the-art algorithms."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+authors = [{name = "Bhargav Kowshik", email = "bhargav.kowshik@gmail.com"}]
+keywords = ['nbdev']
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+]
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/bkowshik/br41n-ecog-hand-pose"
+Documentation = "https://bkowshik.github.io/br41n-ecog-hand-pose/"
+
+[project.entry-points.nbdev]
+br41n_ecog_hand_pose = "br41n_ecog_hand_pose._modidx:d"
+
+[tool.setuptools.dynamic]
+version = {attr = "br41n_ecog_hand_pose.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["br41n_ecog_hand_pose"]
+
+[tool.nbdev]
