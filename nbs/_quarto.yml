@@ -1,6 +1,9 @@
 project:
   type: website
 
+execute:
+  freeze: auto  # re-execute notebooks only when their source changes
+
 format:
   html:
     theme: cosmo

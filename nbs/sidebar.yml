@@ -11,3 +11,4 @@ website:
       - 07_deep_learning.ipynb
       - 08_finger_regression.ipynb
       - 09_benchmark.ipynb
+      - 99_acronyms.ipynb
