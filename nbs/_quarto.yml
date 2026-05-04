@@ -10,6 +10,7 @@ format:
     css: styles.css
     toc: true
     keep-md: true
+    fig-format: retina
   commonmark: default
 
 website:
@@ -21,5 +22,8 @@ website:
     search: true
   sidebar:
     style: floating
+    logo: logo.png
+    logo-alt: "br41n-ecog-hand-pose home"
+    logo-href: index.html
 
 metadata-files: [nbdev.yml, sidebar.yml]
