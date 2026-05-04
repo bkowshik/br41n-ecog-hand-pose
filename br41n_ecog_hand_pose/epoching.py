@@ -5,10 +5,10 @@
 # %% auto #0
 __all__ = ['find_cue_onsets', 'epoch', 'epoch_recording']
 
-# %% ../nbs/04_epoching.ipynb #3d78b762
+# %% ../nbs/04_epoching.ipynb #5bff7946
 import numpy as np
 
-# %% ../nbs/04_epoching.ipynb #7db900eb
+# %% ../nbs/04_epoching.ipynb #81ac45ca
 def find_cue_onsets(labels):
     """Return (onsets, classes) — sample indices and gesture codes for every cue in `labels`."""
     labels = np.asarray(labels)
@@ -16,7 +16,7 @@ def find_cue_onsets(labels):
     classes = labels[onsets]
     return onsets, classes
 
-# %% ../nbs/04_epoching.ipynb #73d769bc
+# %% ../nbs/04_epoching.ipynb #f8e881f8
 def epoch(x, onsets, fs, tmin=-0.5, tmax=2.0):
     """Slice (channels, time) array `x` into (n_trials, channels, n_samples) epochs.
 
@@ -30,7 +30,7 @@ def epoch(x, onsets, fs, tmin=-0.5, tmax=2.0):
     epochs = np.stack([x[..., s:s + n_samples] for s in starts])
     return epochs, kept
 
-# %% ../nbs/04_epoching.ipynb #a63c7d16
+# %% ../nbs/04_epoching.ipynb #4f52d265
 def epoch_recording(rec, tmin=-0.5, tmax=2.0, signal=None):
     """Epoch `signal` (defaults to `rec.ecog`) using cues from `rec.labels`."""
     x = rec.ecog if signal is None else signal

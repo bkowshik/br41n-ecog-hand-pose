@@ -5,11 +5,11 @@
 # %% auto #0
 __all__ = ['BANDS', 'band_power', 'multi_band_power', 'zscore_fit', 'zscore_apply']
 
-# %% ../nbs/05_features.ipynb #c7b17642
+# %% ../nbs/05_features.ipynb #54033c18
 import numpy as np
 from scipy.signal import welch
 
-# %% ../nbs/05_features.ipynb #9722be33
+# %% ../nbs/05_features.ipynb #55f9f542
 BANDS = {
     'mu':         (8, 12),
     'beta':       (13, 30),
@@ -17,7 +17,7 @@ BANDS = {
     'high_gamma': (70, 170),
 }
 
-# %% ../nbs/05_features.ipynb #be92a597
+# %% ../nbs/05_features.ipynb #9f4da224
 def band_power(x, fs, low, high, nperseg=None):
     """Mean PSD power in `[low, high]` Hz along the last axis of `x`."""
     n = x.shape[-1] if nperseg is None else min(nperseg, x.shape[-1])
@@ -25,7 +25,7 @@ def band_power(x, fs, low, high, nperseg=None):
     mask = (freqs >= low) & (freqs <= high)
     return psd[..., mask].mean(axis=-1)
 
-# %% ../nbs/05_features.ipynb #320ab3aa
+# %% ../nbs/05_features.ipynb #2675ce9d
 def multi_band_power(epochs, fs, bands=None, log=True):
     """Concatenate band-power features over `bands` along the last axis."""
     bands = BANDS if bands is None else bands
@@ -35,7 +35,7 @@ def multi_band_power(epochs, fs, bands=None, log=True):
         feats.append(np.log(bp + 1e-12) if log else bp)
     return np.concatenate(feats, axis=-1)
 
-# %% ../nbs/05_features.ipynb #476b7acd
+# %% ../nbs/05_features.ipynb #df576126
 def zscore_fit(X):
     """Return `(mean, std)` along axis 0 for later application via `zscore_apply`."""
     return X.mean(axis=0), X.std(axis=0) + 1e-12

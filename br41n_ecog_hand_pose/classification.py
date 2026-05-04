@@ -5,7 +5,7 @@
 # %% auto #0
 __all__ = ['CLASSIFIERS', 'make_pipeline', 'cross_validate']
 
-# %% ../nbs/06_classification.ipynb #6ad5310b
+# %% ../nbs/06_classification.ipynb #264b28c5
 import numpy as np
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.svm import SVC
@@ -15,14 +15,14 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-# %% ../nbs/06_classification.ipynb #7fec6f37
+# %% ../nbs/06_classification.ipynb #4bafdff8
 CLASSIFIERS = {
     'LDA':      lambda: LinearDiscriminantAnalysis(shrinkage='auto', solver='lsqr'),
     'SVM-rbf':  lambda: SVC(kernel='rbf', C=1.0, gamma='scale'),
     'logreg':   lambda: LogisticRegression(max_iter=2000, C=1.0),
 }
 
-# %% ../nbs/06_classification.ipynb #c483698d
+# %% ../nbs/06_classification.ipynb #f125e411
 def make_pipeline(clf):
     """Standardize, then classify."""
     return Pipeline([('scale', StandardScaler()), ('clf', clf)])
