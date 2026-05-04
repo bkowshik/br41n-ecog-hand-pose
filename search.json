@@ -1,0 +1,552 @@
+[
+  {
+    "objectID": "acronyms.html",
+    "href": "acronyms.html",
+    "title": "Acronyms",
+    "section": "",
+    "text": "Acronym\nExpansion\nNotes\n\n\n\n\nBCI\nBrain–Computer Interface\nThe class of system this dataset is built for.\n\n\nECoG\nElectrocorticography\nCortical-surface electrodes; higher SNR / bandwidth than scalp EEG.\n\n\nEEG\nElectroencephalography\nScalp electrodes; relevant because most baseline models (EEGNet etc.) come from EEG literature.\n\n\nCH\nChannel\nAs in CH1–CH67 of the data matrix.\n\n\nDC\nDirect Current\nThe recording is DC-coupled, so very low frequencies are preserved (and need explicit removal).\n\n\nHz\nHertz\nCycles per second (sampling rate, frequency bands).\n\n\nFS\nSampling Frequency\n1200 Hz here.\n\n\nCAR\nCommon Average Reference\nRe-reference each channel by subtracting the across-channel mean.\n\n\nPSD\nPower Spectral Density\nPower per frequency bin.\n\n\nSTFT\nShort-Time Fourier Transform\nSliding-window FFT used for time-frequency features.\n\n\nCSP\nCommon Spatial Patterns\nSpatial filter that maximizes variance ratio between classes.\n\n\nICA\nIndependent Component Analysis\nOptional artifact-removal step.\n\n\nML\nMachine Learning\nClassical models — LDA, SVM, logistic regression, Riemannian.\n\n\nDL\nDeep Learning\nEnd-to-end neural-network models on raw epochs.\n\n\nLDA\nLinear Discriminant Analysis\nClassic linear classifier; common BCI baseline.\n\n\nSVM\nSupport Vector Machine\nMargin-based classifier.\n\n\nCNN\nConvolutional Neural Network\nBackbone of EEGNet / ShallowConvNet.\n\n\nEEGNet\nEEG-specific compact CNN\nStandard deep baseline for EEG/ECoG decoding.\n\n\nMSE\nMean Squared Error\nRegression loss / metric (used in 08_finger_regression).\n\n\nCV\nCross-Validation\nk-fold or leave-one-out evaluation protocol.\n\n\nSOTA\nState Of The Art\nPublished best results we benchmark against in 09_benchmark.",
+    "crumbs": [
+      "Acronyms"
+    ]
+  },
+  {
+    "objectID": "finger_regression.html",
+    "href": "finger_regression.html",
+    "title": "08. Finger Pose Regression",
+    "section": "",
+    "text": "Aggregate the 5-channel glove signal in the stimulus window into one scalar per finger per trial. Mean flexion in the cue window is the simplest, cleanest summary; it ignores temporal dynamics but is enough to test whether ECoG band power encodes the static hand pose.\n\n\n\n\ndef glove_targets(\n    rec, tmin:float=0.0, tmax:float=2.0\n):\n\nReturn (targets, kept): mean flexion per finger per kept trial.",
+    "crumbs": [
+      "08. Finger Pose Regression"
+    ]
+  },
+  {
+    "objectID": "finger_regression.html#per-trial-finger-targets",
+    "href": "finger_regression.html#per-trial-finger-targets",
+    "title": "08. Finger Pose Regression",
+    "section": "",
+    "text": "Aggregate the 5-channel glove signal in the stimulus window into one scalar per finger per trial. Mean flexion in the cue window is the simplest, cleanest summary; it ignores temporal dynamics but is enough to test whether ECoG band power encodes the static hand pose.\n\n\n\n\ndef glove_targets(\n    rec, tmin:float=0.0, tmax:float=2.0\n):\n\nReturn (targets, kept): mean flexion per finger per kept trial.",
+    "crumbs": [
+      "08. Finger Pose Regression"
+    ]
+  },
+  {
+    "objectID": "finger_regression.html#ridge-regression-with-per-finger-correlation",
+    "href": "finger_regression.html#ridge-regression-with-per-finger-correlation",
+    "title": "08. Finger Pose Regression",
+    "section": "Ridge regression with per-finger correlation",
+    "text": "Ridge regression with per-finger correlation\nL2-regularized linear regression handles the high feature/trial ratio (240 features × 90 trials) and predicts all 5 fingers jointly. Pearson r is the standard metric in the ECoG hand-decoding literature; MSE is reported alongside for completeness.\n\n\ncross_validate_regression\n\ndef cross_validate_regression(\n    X, Y, alpha:float=1.0, n_splits:int=5, random_state:int=0\n):\n\nK-fold CV of Ridge regression. Returns (corrs, mses) shaped (folds, n_targets).",
+    "crumbs": [
+      "08. Finger Pose Regression"
+    ]
+  },
+  {
+    "objectID": "finger_regression.html#run",
+    "href": "finger_regression.html#run",
+    "title": "08. Finger Pose Regression",
+    "section": "Run",
+    "text": "Run\n\nimport matplotlib.pyplot as plt\nfrom br41n_ecog_hand_pose.data import load_ecog, FINGER_NAMES\nfrom br41n_ecog_hand_pose.preprocessing import preprocess\nfrom br41n_ecog_hand_pose.epoching import epoch_recording\nfrom br41n_ecog_hand_pose.features import multi_band_power\n\nplt.rcParams.update({\n    'axes.grid':      True,\n    'grid.linestyle': ':',\n    'grid.linewidth': 0.5,\n    'grid.alpha':     0.6,\n})\n\n\nrec = load_ecog()\nclean, _ = preprocess(rec.ecog, rec.fs)\nepochs, _ = epoch_recording(rec, tmin=0.0, tmax=2.0, signal=clean)\nX = multi_band_power(epochs, rec.fs)\nY, _ = glove_targets(rec, tmin=0.0, tmax=2.0)\nprint(f'X={X.shape}, Y={Y.shape}')\n\n\ncorrs, mses = cross_validate_regression(X, Y, alpha=1.0)\nprint('Per-finger Pearson r (mean across folds):')\nfor fi, name in enumerate(FINGER_NAMES):\n    print(f'  {name:&gt;7}: {corrs[:, fi].mean():.3f} \\u00b1 {corrs[:, fi].std():.3f}')\n\n\nfig, ax = plt.subplots(figsize=(6, 3))\nax.bar(FINGER_NAMES, corrs.mean(axis=0), yerr=corrs.std(axis=0), capsize=3)\nax.axhline(0, color='k', lw=0.8)\nax.set_ylabel('Pearson r')\nax.set_title('Cross-validated finger-flexion decoding from ECoG band power')\nplt.tight_layout(); plt.show()",
+    "crumbs": [
+      "08. Finger Pose Regression"
+    ]
+  },
+  {
+    "objectID": "classification.html",
+    "href": "classification.html",
+    "title": "06. Classification",
+    "section": "",
+    "text": "Each entry is a factory (no-arg callable returning a fresh estimator) so the cross-validation loop can build a clean instance per fold without leaking state.",
+    "crumbs": [
+      "06. Classification"
+    ]
+  },
+  {
+    "objectID": "classification.html#classifier-zoo",
+    "href": "classification.html#classifier-zoo",
+    "title": "06. Classification",
+    "section": "",
+    "text": "Each entry is a factory (no-arg callable returning a fresh estimator) so the cross-validation loop can build a clean instance per fold without leaking state.",
+    "crumbs": [
+      "06. Classification"
+    ]
+  },
+  {
+    "objectID": "classification.html#pipeline-cross-validation",
+    "href": "classification.html#pipeline-cross-validation",
+    "title": "06. Classification",
+    "section": "Pipeline + cross-validation",
+    "text": "Pipeline + cross-validation\nStandardization is fit on each training fold (no leakage) and applied to the matching test fold. Stratified 5-fold preserves class balance — with 30 trials per class, each fold has 6 test trials per class.\n\n\ncross_validate\n\ndef cross_validate(\n    make_clf, X, y, n_splits:int=5, random_state:int=0\n):\n\nStratified k-fold accuracy + summed confusion matrix.\nmake_clf is a no-arg callable returning a fresh classifier per fold. Returns (per_fold_accuracy, summed_confusion_matrix, class_labels).\n\n\n\nmake_pipeline\n\ndef make_pipeline(\n    clf\n):\n\nStandardize, then classify.",
+    "crumbs": [
+      "06. Classification"
+    ]
+  },
+  {
+    "objectID": "classification.html#run-the-bake-off",
+    "href": "classification.html#run-the-bake-off",
+    "title": "06. Classification",
+    "section": "Run the bake-off",
+    "text": "Run the bake-off\n\nimport matplotlib.pyplot as plt\nfrom br41n_ecog_hand_pose.data import load_ecog, GESTURE_NAMES\nfrom br41n_ecog_hand_pose.preprocessing import preprocess\nfrom br41n_ecog_hand_pose.epoching import epoch_recording\nfrom br41n_ecog_hand_pose.features import multi_band_power\n\nplt.rcParams.update({\n    'axes.grid':      True,\n    'grid.linestyle': ':',\n    'grid.linewidth': 0.5,\n    'grid.alpha':     0.6,\n})\n\n\nrec = load_ecog()\nclean, _ = preprocess(rec.ecog, rec.fs)\nepochs, classes = epoch_recording(rec, tmin=0.0, tmax=2.0, signal=clean)\nX = multi_band_power(epochs, rec.fs)\ny = classes\nprint(f'X={X.shape}, y={y.shape}, chance = {1/len(np.unique(y)):.3f}')\n\n\nresults = {}\nfor name, make_clf in CLASSIFIERS.items():\n    accs, cm, labels = cross_validate(make_clf, X, y)\n    results[name] = (accs, cm, labels)\n    print(f'{name:&gt;8}: {accs.mean():.3f} \\u00b1 {accs.std():.3f}   (folds: {[f\"{a:.2f}\" for a in accs]})')\n\n\nfig, axs = plt.subplots(1, len(results), figsize=(4 * len(results), 3.5))\nfor ax, (name, (accs, cm, labels)) in zip(axs, results.items()):\n    norm = cm / cm.sum(axis=1, keepdims=True)\n    im = ax.imshow(norm, cmap='Blues', vmin=0, vmax=1)\n    ax.set_xticks(range(len(labels))); ax.set_yticks(range(len(labels)))\n    ax.set_xticklabels([GESTURE_NAMES[c] for c in labels])\n    ax.set_yticklabels([GESTURE_NAMES[c] for c in labels])\n    ax.set_xlabel('predicted'); ax.set_ylabel('true')\n    ax.set_title(f'{name} — {accs.mean():.3f}')\n    ax.grid(False)\n    for i in range(len(labels)):\n        for j in range(len(labels)):\n            ax.text(j, i, f'{norm[i, j]:.2f}', ha='center', va='center',\n                    color='white' if norm[i, j] &gt; 0.5 else 'black', fontsize=9)\nfig.suptitle('Confusion matrices (row-normalized)')\nplt.tight_layout(); plt.show()",
+    "crumbs": [
+      "06. Classification"
+    ]
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "br41n-ecog-hand-pose",
+    "section": "",
+    "text": "data/ECoG_Handpose.mat (provided by the BR41N.IO hackathon organizers):\n\nParadigm: 90 trials of rock / paper / scissors gestures, cued for 2s and followed by a 2–3s rest screen.\nSampling rate: 1200 Hz.\nRecording site: Right sensorimotor cortex, 60-channel ECoG grid spanning pre-/post-central, supra-marginal, inferior parietal, and middle/superior frontal gyri.\nChannel layout ([channel × time]):\n\nCH1 — sample time\nCH2–61 — ECoG (raw, DC-coupled), 60 channels\nCH62 — paradigm label (0=relax, 1=fist, 2=peace, 3=open hand)\nCH63–67 — data glove (thumb, index, middle, ring, little finger flexion)",
+    "crumbs": [
+      "br41n-ecog-hand-pose"
+    ]
+  },
+  {
+    "objectID": "index.html#dataset",
+    "href": "index.html#dataset",
+    "title": "br41n-ecog-hand-pose",
+    "section": "",
+    "text": "data/ECoG_Handpose.mat (provided by the BR41N.IO hackathon organizers):\n\nParadigm: 90 trials of rock / paper / scissors gestures, cued for 2s and followed by a 2–3s rest screen.\nSampling rate: 1200 Hz.\nRecording site: Right sensorimotor cortex, 60-channel ECoG grid spanning pre-/post-central, supra-marginal, inferior parietal, and middle/superior frontal gyri.\nChannel layout ([channel × time]):\n\nCH1 — sample time\nCH2–61 — ECoG (raw, DC-coupled), 60 channels\nCH62 — paradigm label (0=relax, 1=fist, 2=peace, 3=open hand)\nCH63–67 — data glove (thumb, index, middle, ring, little finger flexion)",
+    "crumbs": [
+      "br41n-ecog-hand-pose"
+    ]
+  },
+  {
+    "objectID": "index.html#notebook-pipeline",
+    "href": "index.html#notebook-pipeline",
+    "title": "br41n-ecog-hand-pose",
+    "section": "Notebook pipeline",
+    "text": "Notebook pipeline\nEach notebook in nbs/ focuses on one step of the analysis. Functions defined in earlier notebooks are exported via nbdev into the br41n_ecog_hand_pose package and reused in later notebooks.\n\n\n\n\n\n\n\n\nNotebook\nModule\nPurpose\n\n\n\n\n01_data_loading\ndata\nLoad .mat, expose ECoG / labels / glove accessors\n\n\n02_eda\n—\nVisualize raw signals, label timeline, channel stats\n\n\n03_preprocessing\npreprocessing\nNotch, bandpass, common average reference\n\n\n04_epoching\nepoching\nCue-locked trial segmentation from CH62\n\n\n05_features\nfeatures\nBand power, time-frequency, CSP\n\n\n06_classification\nclassification\nLDA / SVM / Riemannian baselines\n\n\n07_deep_learning\ndl\nEEGNet / ShallowConvNet end-to-end models\n\n\n08_finger_regression\nregression\nContinuous decoding of glove channels\n\n\n09_benchmark\n—\nCompare results against published SOTA\n\n\n99_acronyms\n—\nAppendix: glossary of acronyms used in the project",
+    "crumbs": [
+      "br41n-ecog-hand-pose"
+    ]
+  },
+  {
+    "objectID": "index.html#developer-guide",
+    "href": "index.html#developer-guide",
+    "title": "br41n-ecog-hand-pose",
+    "section": "Developer guide",
+    "text": "Developer guide\nOne-time bootstrap:\n# 1. export notebooks → .py modules so the package is importable\n$ nbdev-export\n\n# 2. install the package in editable mode\n$ pip install -e .\n\n# 3. preview the rendered docs locally\n$ nbdev-preview\nDay-to-day commands after editing a notebook in nbs/:\n# sync code + docs + tests in one shot (recommended before commits)\n$ nbdev-prepare\n\n# regenerate README.md from index.ipynb only\n$ nbdev-readme",
+    "crumbs": [
+      "br41n-ecog-hand-pose"
+    ]
+  },
+  {
+    "objectID": "preprocessing.html",
+    "href": "preprocessing.html",
+    "title": "03. Preprocessing",
+    "section": "",
+    "text": "Remove line-noise harmonics (50 Hz in Europe, 60 Hz in the US) with a zero-phase IIR notch. harmonics=N cascades the notch at f, 2f, ... Nf so a single call covers the fundamental and its overtones.\n\n\n\n\ndef notch_filter(\n    x, fs, freq:float=50.0, Q:float=30.0, harmonics:int=3\n):\n\nZero-phase IIR notch at freq (and harmonics overtones) on a (channels, time) array.",
+    "crumbs": [
+      "03. Preprocessing"
+    ]
+  },
+  {
+    "objectID": "preprocessing.html#notch-filter",
+    "href": "preprocessing.html#notch-filter",
+    "title": "03. Preprocessing",
+    "section": "",
+    "text": "Remove line-noise harmonics (50 Hz in Europe, 60 Hz in the US) with a zero-phase IIR notch. harmonics=N cascades the notch at f, 2f, ... Nf so a single call covers the fundamental and its overtones.\n\n\n\n\ndef notch_filter(\n    x, fs, freq:float=50.0, Q:float=30.0, harmonics:int=3\n):\n\nZero-phase IIR notch at freq (and harmonics overtones) on a (channels, time) array.",
+    "crumbs": [
+      "03. Preprocessing"
+    ]
+  },
+  {
+    "objectID": "preprocessing.html#bandpass",
+    "href": "preprocessing.html#bandpass",
+    "title": "03. Preprocessing",
+    "section": "Bandpass",
+    "text": "Bandpass\nZero-phase Butterworth bandpass. The default 1–200 Hz range removes the DC drift introduced by the DC-coupled recording (low end) while preserving the high-gamma band (70–170 Hz) that carries most of the motor-decoding signal in ECoG.\n\n\nbandpass\n\ndef bandpass(\n    x, fs, low:float=1.0, high:float=200.0, order:int=4\n):\n\nZero-phase Butterworth bandpass on a (channels, time) array.",
+    "crumbs": [
+      "03. Preprocessing"
+    ]
+  },
+  {
+    "objectID": "preprocessing.html#common-average-reference-car",
+    "href": "preprocessing.html#common-average-reference-car",
+    "title": "03. Preprocessing",
+    "section": "Common Average Reference (CAR)",
+    "text": "Common Average Reference (CAR)\nSubtract the across-channel mean from each sample. This suppresses noise that is common to the whole grid (movement artifacts, distant muscle activity) and is the canonical re-reference for grid ECoG.\n\n\ncommon_average_reference\n\ndef common_average_reference(\n    x\n):\n\nSubtract the across-channel mean from each sample of x (channels, time).",
+    "crumbs": [
+      "03. Preprocessing"
+    ]
+  },
+  {
+    "objectID": "preprocessing.html#bad-channel-rejection",
+    "href": "preprocessing.html#bad-channel-rejection",
+    "title": "03. Preprocessing",
+    "section": "Bad-channel rejection",
+    "text": "Bad-channel rejection\nMark channels whose std is more than threshold median-absolute-deviations away from the median std. Useful before CAR so the mean isn’t dragged around by a single saturated electrode.\n\n\nfind_bad_channels\n\ndef find_bad_channels(\n    x, threshold:float=5.0\n):\n\nReturn the indices of channels whose std is threshold MADs from the median std.",
+    "crumbs": [
+      "03. Preprocessing"
+    ]
+  },
+  {
+    "objectID": "preprocessing.html#convenience-pipeline",
+    "href": "preprocessing.html#convenience-pipeline",
+    "title": "03. Preprocessing",
+    "section": "Convenience pipeline",
+    "text": "Convenience pipeline\npreprocess(ecog, fs) chains everything in the recommended order: notch (with harmonics) → bandpass → CAR. Bad channels are zeroed out before CAR so they don’t bias the across-channel mean.\n\n\npreprocess\n\ndef preprocess(\n    ecog, fs, line_freq:float=50.0, line_harmonics:int=3, band:tuple=(1.0, 200.0), bad_threshold:float=5.0\n):\n\nNotch (with harmonics) → bandpass → zero out bad channels → CAR.",
+    "crumbs": [
+      "03. Preprocessing"
+    ]
+  },
+  {
+    "objectID": "preprocessing.html#visual-validation",
+    "href": "preprocessing.html#visual-validation",
+    "title": "03. Preprocessing",
+    "section": "Visual validation",
+    "text": "Visual validation\nPSD and a single-channel time-domain trace, before vs after preprocessing. Run interactively to confirm the notch removed line-noise peaks, bandpass killed the DC drift, and CAR didn’t introduce ringing.\n\nimport matplotlib.pyplot as plt\nfrom scipy.signal import welch\nfrom br41n_ecog_hand_pose.data import load_ecog\n\nplt.rcParams.update({\n    'axes.grid':      True,\n    'grid.linestyle': ':',\n    'grid.linewidth': 0.5,\n    'grid.alpha':     0.6,\n})\n\n\nrec = load_ecog()\nclean, bad = preprocess(rec.ecog, rec.fs)\nprint(f'before:  mean={rec.ecog.mean():&gt;10.1f}  std={rec.ecog.std():&gt;8.1f}')\nprint(f'after:   mean={clean.mean():&gt;10.4f}  std={clean.std():&gt;8.1f}')\nprint(f'bad channels: {bad.tolist()}')\n\n\nfreqs_a, psd_a = welch(rec.ecog, fs=rec.fs, nperseg=2 * rec.fs)\nfreqs_b, psd_b = welch(clean,    fs=rec.fs, nperseg=2 * rec.fs)\n\nfig, axs = plt.subplots(1, 2, figsize=(12, 4), sharey=True)\naxs[0].semilogy(freqs_a, psd_a.T, lw=0.4, alpha=0.5); axs[0].set_title('before')\naxs[1].semilogy(freqs_b, psd_b.T, lw=0.4, alpha=0.5); axs[1].set_title('after')\nfor ax in axs:\n    ax.set_xlim(0, 200)\n    ax.set_xlabel('frequency (Hz)')\naxs[0].set_ylabel('PSD (\\u03bcV\\u00b2/Hz)')\nfig.suptitle('Welch PSD per channel — before vs after preprocessing')\nplt.tight_layout(); plt.show()\n\n\nch, n = 30, int(3 * rec.fs)\nfig, axs = plt.subplots(2, 1, figsize=(10, 4), sharex=True)\naxs[0].plot(rec.time[:n], rec.ecog[ch, :n], lw=0.5); axs[0].set_title(f'before — channel {ch}')\naxs[1].plot(rec.time[:n], clean[ch, :n],   lw=0.5); axs[1].set_title(f'after  — channel {ch}')\naxs[1].set_xlabel('time (s)')\nplt.tight_layout(); plt.show()",
+    "crumbs": [
+      "03. Preprocessing"
+    ]
+  },
+  {
+    "objectID": "data_loading.html",
+    "href": "data_loading.html",
+    "title": "01. Data Loading",
+    "section": "",
+    "text": "The .mat file stores everything in a single y matrix of shape (67, T) (channel × time). We slice it into the documented groups.",
+    "crumbs": [
+      "01. Data Loading"
+    ]
+  },
+  {
+    "objectID": "data_loading.html#constants",
+    "href": "data_loading.html#constants",
+    "title": "01. Data Loading",
+    "section": "",
+    "text": "The .mat file stores everything in a single y matrix of shape (67, T) (channel × time). We slice it into the documented groups.",
+    "crumbs": [
+      "01. Data Loading"
+    ]
+  },
+  {
+    "objectID": "data_loading.html#recording-container",
+    "href": "data_loading.html#recording-container",
+    "title": "01. Data Loading",
+    "section": "Recording container",
+    "text": "Recording container\nA small dataclass keeps the four logical signal groups together so downstream notebooks don’t have to remember channel offsets.\n\n\nECoGRecording\n\ndef ECoGRecording(\n    time:ndarray, ecog:ndarray, labels:ndarray, glove:ndarray, fs:float=1200\n)-&gt;None:\n\nContainer for the rock-paper-scissors ECoG dataset.",
+    "crumbs": [
+      "01. Data Loading"
+    ]
+  },
+  {
+    "objectID": "data_loading.html#loader",
+    "href": "data_loading.html#loader",
+    "title": "01. Data Loading",
+    "section": "Loader",
+    "text": "Loader\nload_ecog walks up from the current working directory to locate data/ECoG_Handpose.mat, so it works whether you run from the repo root or from nbs/.\n\n\nload_ecog\n\ndef load_ecog(\n    path:NoneType=None\n):\n\nLoad ECoG_Handpose.mat and return an ECoGRecording.",
+    "crumbs": [
+      "01. Data Loading"
+    ]
+  },
+  {
+    "objectID": "data_loading.html#smoke-test",
+    "href": "data_loading.html#smoke-test",
+    "title": "01. Data Loading",
+    "section": "Smoke test",
+    "text": "Smoke test\nVerify the loader returns the documented shapes and label values. Future notebooks should be able to from br41n_ecog_hand_pose.data import load_ecog and get the same object back.\n\nrec = load_ecog()\nprint(f'duration:    {rec.duration_s:.1f} s  ({rec.n_samples:,} samples @ {rec.fs} Hz)')\nprint(f'ecog shape:  {rec.ecog.shape}')\nprint(f'labels:      unique = {sorted(np.unique(rec.labels).tolist())}  ({GESTURE_NAMES})')\nprint(f'glove shape: {rec.glove.shape}  ({FINGER_NAMES})')",
+    "crumbs": [
+      "01. Data Loading"
+    ]
+  },
+  {
+    "objectID": "features.html",
+    "href": "features.html",
+    "title": "05. Feature Extraction",
+    "section": "",
+    "text": "Standard motor-decoding bands. High-gamma is the workhorse for ECoG hand decoding, but the mu/beta event-related desynchronization (ERD) is informative too.",
+    "crumbs": [
+      "05. Feature Extraction"
+    ]
+  },
+  {
+    "objectID": "features.html#frequency-bands",
+    "href": "features.html#frequency-bands",
+    "title": "05. Feature Extraction",
+    "section": "",
+    "text": "Standard motor-decoding bands. High-gamma is the workhorse for ECoG hand decoding, but the mu/beta event-related desynchronization (ERD) is informative too.",
+    "crumbs": [
+      "05. Feature Extraction"
+    ]
+  },
+  {
+    "objectID": "features.html#single-band-power",
+    "href": "features.html#single-band-power",
+    "title": "05. Feature Extraction",
+    "section": "Single-band power",
+    "text": "Single-band power\nAverage PSD power between low and high Hz. Returns (trials, channels) when given an epoched tensor, or (channels,) when given continuous data.\n\n\nband_power\n\ndef band_power(\n    x, fs, low, high, nperseg:NoneType=None\n):\n\nMean PSD power in [low, high] Hz along the last axis of x.",
+    "crumbs": [
+      "05. Feature Extraction"
+    ]
+  },
+  {
+    "objectID": "features.html#multi-band-feature-matrix",
+    "href": "features.html#multi-band-feature-matrix",
+    "title": "05. Feature Extraction",
+    "section": "Multi-band feature matrix",
+    "text": "Multi-band feature matrix\nStack band power across bands into a (trials, channels × n_bands) matrix ready for a classifier. Log-transform is on by default because band power is approximately log-normal — the transformed features fit Gaussian classifiers (LDA, QDA) much better.\n\n\nmulti_band_power\n\ndef multi_band_power(\n    epochs, fs, bands:NoneType=None, log:bool=True\n):\n\nConcatenate band-power features over bands along the last axis.",
+    "crumbs": [
+      "05. Feature Extraction"
+    ]
+  },
+  {
+    "objectID": "features.html#z-score-normalization",
+    "href": "features.html#z-score-normalization",
+    "title": "05. Feature Extraction",
+    "section": "Z-score normalization",
+    "text": "Z-score normalization\nCenter each feature and scale to unit variance. Fit on the training fold; apply to the test fold. Avoids per-channel amplitude differences dominating the classifier.\n\n\nzscore_apply\n\ndef zscore_apply(\n    X, stats\n):\n\nCall self as a function.\n\n\n\nzscore_fit\n\ndef zscore_fit(\n    X\n):\n\nReturn (mean, std) along axis 0 for later application via zscore_apply.",
+    "crumbs": [
+      "05. Feature Extraction"
+    ]
+  },
+  {
+    "objectID": "features.html#visual-validation",
+    "href": "features.html#visual-validation",
+    "title": "05. Feature Extraction",
+    "section": "Visual validation",
+    "text": "Visual validation\nPlot mean log-band-power per class for the high-gamma band. If the classes look separable here, a linear classifier should do well in 06.\n\nimport matplotlib.pyplot as plt\nfrom br41n_ecog_hand_pose.data import load_ecog, GESTURE_NAMES\nfrom br41n_ecog_hand_pose.preprocessing import preprocess\nfrom br41n_ecog_hand_pose.epoching import epoch_recording\n\nplt.rcParams.update({\n    'axes.grid':      True,\n    'grid.linestyle': ':',\n    'grid.linewidth': 0.5,\n    'grid.alpha':     0.6,\n})\n\n\nrec = load_ecog()\nclean, _ = preprocess(rec.ecog, rec.fs)\nepochs, classes = epoch_recording(rec, tmin=0.0, tmax=2.0, signal=clean)\nX = multi_band_power(epochs, rec.fs)\nprint(f'epochs:   {epochs.shape}')\nprint(f'features: {X.shape}     # 60 channels \\u00d7 {len(__import__(\"br41n_ecog_hand_pose.features\", fromlist=[\"BANDS\"]).BANDS)} bands')\n\n\n# split features back into (trials, channels, bands) for plotting\nn_ch = epochs.shape[1]\nF = X.reshape(X.shape[0], len(BANDS), n_ch).transpose(0, 2, 1)  # (trials, channels, bands)\n\nfig, axs = plt.subplots(1, len(BANDS), figsize=(4 * len(BANDS), 3), sharey=True)\nfor ax, (band_name, _), bi in zip(axs, BANDS.items(), range(len(BANDS))):\n    for c in [1, 2, 3]:\n        ax.plot(F[classes == c, :, bi].mean(axis=0), label=GESTURE_NAMES[c])\n    ax.set_title(band_name)\n    ax.set_xlabel('channel')\naxs[0].set_ylabel('mean log-power')\naxs[0].legend(fontsize=8)\nfig.suptitle('Mean log-band-power per channel, per class')\nplt.tight_layout(); plt.show()",
+    "crumbs": [
+      "05. Feature Extraction"
+    ]
+  },
+  {
+    "objectID": "benchmark.html",
+    "href": "benchmark.html",
+    "title": "09. Benchmark",
+    "section": "",
+    "text": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom br41n_ecog_hand_pose.data import load_ecog, FINGER_NAMES\nfrom br41n_ecog_hand_pose.preprocessing import preprocess\nfrom br41n_ecog_hand_pose.epoching import epoch_recording\nfrom br41n_ecog_hand_pose.features import multi_band_power\nfrom br41n_ecog_hand_pose.classification import CLASSIFIERS, cross_validate\nfrom br41n_ecog_hand_pose.regression import glove_targets, cross_validate_regression\n\nplt.rcParams.update({\n    'axes.grid':      True,\n    'grid.linestyle': ':',\n    'grid.linewidth': 0.5,\n    'grid.alpha':     0.6,\n})",
+    "crumbs": [
+      "09. Benchmark"
+    ]
+  },
+  {
+    "objectID": "benchmark.html#setup",
+    "href": "benchmark.html#setup",
+    "title": "09. Benchmark",
+    "section": "",
+    "text": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom br41n_ecog_hand_pose.data import load_ecog, FINGER_NAMES\nfrom br41n_ecog_hand_pose.preprocessing import preprocess\nfrom br41n_ecog_hand_pose.epoching import epoch_recording\nfrom br41n_ecog_hand_pose.features import multi_band_power\nfrom br41n_ecog_hand_pose.classification import CLASSIFIERS, cross_validate\nfrom br41n_ecog_hand_pose.regression import glove_targets, cross_validate_regression\n\nplt.rcParams.update({\n    'axes.grid':      True,\n    'grid.linestyle': ':',\n    'grid.linewidth': 0.5,\n    'grid.alpha':     0.6,\n})",
+    "crumbs": [
+      "09. Benchmark"
+    ]
+  },
+  {
+    "objectID": "benchmark.html#build-the-feature-matrix-once",
+    "href": "benchmark.html#build-the-feature-matrix-once",
+    "title": "09. Benchmark",
+    "section": "Build the feature matrix once",
+    "text": "Build the feature matrix once\nEvery pipeline below reuses the same preprocessed epochs and band-power features so differences are attributable to the model, not the input.\n\nrec = load_ecog()\nclean, bad = preprocess(rec.ecog, rec.fs)\nepochs, classes = epoch_recording(rec, tmin=0.0, tmax=2.0, signal=clean)\nX = multi_band_power(epochs, rec.fs)\nY, _ = glove_targets(rec, tmin=0.0, tmax=2.0)\nprint(f'epochs {epochs.shape}, X {X.shape}, Y {Y.shape}, bad channels: {bad.tolist()}')",
+    "crumbs": [
+      "09. Benchmark"
+    ]
+  },
+  {
+    "objectID": "benchmark.html#classification-3-class-gesture-decoding",
+    "href": "benchmark.html#classification-3-class-gesture-decoding",
+    "title": "09. Benchmark",
+    "section": "Classification — 3-class gesture decoding",
+    "text": "Classification — 3-class gesture decoding\n\nclf_results = {}\nfor name, make_clf in CLASSIFIERS.items():\n    accs, cm, _ = cross_validate(make_clf, X, classes)\n    clf_results[name] = (accs.mean(), accs.std())\n    print(f'{name:&gt;8}: {accs.mean():.3f} \\u00b1 {accs.std():.3f}')",
+    "crumbs": [
+      "09. Benchmark"
+    ]
+  },
+  {
+    "objectID": "benchmark.html#regression-continuous-finger-flexion",
+    "href": "benchmark.html#regression-continuous-finger-flexion",
+    "title": "09. Benchmark",
+    "section": "Regression — continuous finger flexion",
+    "text": "Regression — continuous finger flexion\n\ncorrs, _ = cross_validate_regression(X, Y, alpha=1.0)\nfor fi, name in enumerate(FINGER_NAMES):\n    print(f'  {name:&gt;7}: r = {corrs[:, fi].mean():.3f} \\u00b1 {corrs[:, fi].std():.3f}')\nprint(f'  {\"average\":&gt;7}: r = {corrs.mean():.3f}')",
+    "crumbs": [
+      "09. Benchmark"
+    ]
+  },
+  {
+    "objectID": "benchmark.html#summary-plot",
+    "href": "benchmark.html#summary-plot",
+    "title": "09. Benchmark",
+    "section": "Summary plot",
+    "text": "Summary plot\n\nfig, axs = plt.subplots(1, 2, figsize=(11, 3.5))\n\nnames = list(clf_results)\nmeans = [clf_results[n][0] for n in names]\nstds  = [clf_results[n][1] for n in names]\naxs[0].bar(names, means, yerr=stds, capsize=3)\naxs[0].axhline(1/3, color='k', lw=0.8, ls='--', label='chance (3-class)')\naxs[0].set_ylim(0, 1); axs[0].set_ylabel('accuracy')\naxs[0].set_title('Gesture classification (5-fold CV)')\naxs[0].legend(fontsize=8)\n\naxs[1].bar(FINGER_NAMES, corrs.mean(axis=0), yerr=corrs.std(axis=0), capsize=3)\naxs[1].axhline(0, color='k', lw=0.8)\naxs[1].set_ylim(-0.1, 1)\naxs[1].set_ylabel('Pearson r')\naxs[1].set_title('Finger-flexion regression (5-fold CV)')\nplt.tight_layout(); plt.show()",
+    "crumbs": [
+      "09. Benchmark"
+    ]
+  },
+  {
+    "objectID": "benchmark.html#comparison-with-published-baselines",
+    "href": "benchmark.html#comparison-with-published-baselines",
+    "title": "09. Benchmark",
+    "section": "Comparison with published baselines",
+    "text": "Comparison with published baselines\nDirect comparisons are imperfect — different subjects, paradigms, channel counts, and trial counts mean the numbers below are typical ranges, not strict targets.\n\nGesture classification\n\n\n\n\n\n\n\n\nPipeline\nReported accuracy\nNotes\n\n\n\n\nOur LDA + log-band-power\nsee run above\n60-channel ECoG, 3-class, 90 trials, stratified 5-fold\n\n\nHand-gesture ECoG with HG-band features + LDA (Pistohl et al. 2008, Wang et al. 2013)\n0.80–0.95\nSubject- and session-dependent\n\n\nEEGNet on motor imagery (Lawhern et al. 2018)\n0.65–0.75 (4-class EEG)\nLower because EEG SNR is worse than ECoG\n\n\nShallowConvNet, motor-decoding ECoG (Schirrmeister et al. 2017)\n0.80–0.92\nWithin ~3% of CSP+LDA on ECoG\n\n\nRiemannian (covariance + tangent space) (Yger et al. 2017)\n0.80–0.90\nStrong without explicit feature engineering\n\n\n\n\n\nContinuous finger decoding\n\n\n\n\n\n\n\n\nPipeline\nReported per-finger r\nNotes\n\n\n\n\nOur Ridge + log-band-power\nsee run above\nMean of 5 fingers, 5-fold CV\n\n\nLinear filter from HG band power, BCI Competition IV-4 (Liang & Bougrain 2012)\n0.45–0.60\nThe standard reference for ECoG finger decoding\n\n\nDeep CNN on raw ECoG (Xie et al. 2018)\n0.55–0.70\n~5–10 pp gain over linear baselines\n\n\n\n\n\nWhere this pipeline is expected to lag\n\nEEGNet on 90 trials almost always underperforms LDA + HG-band features on ECoG — there’s not enough data to fit a CNN well. With more sessions or data augmentation it would close the gap.\nRiemannian isn’t implemented here; it would be a quick add via pyriemann and is worth comparing on the same folds.\nCSP features per band would likely give a small bump (1–3 pp) over raw band power for the gesture task; not implemented in 05_features yet.",
+    "crumbs": [
+      "09. Benchmark"
+    ]
+  },
+  {
+    "objectID": "epoching.html",
+    "href": "epoching.html",
+    "title": "04. Epoching",
+    "section": "",
+    "text": "An onset is a sample where the paradigm channel transitions from 0 (rest) to a non-zero gesture code. The label at the onset sample is the gesture class for that trial.\n\n\n\n\ndef find_cue_onsets(\n    labels\n):\n\nReturn (onsets, classes) — sample indices and gesture codes for every cue in labels.",
+    "crumbs": [
+      "04. Epoching"
+    ]
+  },
+  {
+    "objectID": "epoching.html#cue-onset-detection",
+    "href": "epoching.html#cue-onset-detection",
+    "title": "04. Epoching",
+    "section": "",
+    "text": "An onset is a sample where the paradigm channel transitions from 0 (rest) to a non-zero gesture code. The label at the onset sample is the gesture class for that trial.\n\n\n\n\ndef find_cue_onsets(\n    labels\n):\n\nReturn (onsets, classes) — sample indices and gesture codes for every cue in labels.",
+    "crumbs": [
+      "04. Epoching"
+    ]
+  },
+  {
+    "objectID": "epoching.html#epoch-extraction",
+    "href": "epoching.html#epoch-extraction",
+    "title": "04. Epoching",
+    "section": "Epoch extraction",
+    "text": "Epoch extraction\nSlice fixed windows around each onset. tmin and tmax are in seconds relative to the cue (negative tmin keeps a pre-cue baseline, useful for normalization). Trials whose window would fall off either edge of the recording are dropped.\n\n\nepoch\n\ndef epoch(\n    x, onsets, fs, tmin:float=-0.5, tmax:float=2.0\n):\n\nSlice (channels, time) array x into (n_trials, channels, n_samples) epochs.\nReturns (epochs, kept_mask) — kept_mask is True for onsets whose window fit.",
+    "crumbs": [
+      "04. Epoching"
+    ]
+  },
+  {
+    "objectID": "epoching.html#convenience-wrapper",
+    "href": "epoching.html#convenience-wrapper",
+    "title": "04. Epoching",
+    "section": "Convenience wrapper",
+    "text": "Convenience wrapper\nepoch_recording(rec, tmin, tmax) does the common case: find cues in rec.labels, slice epochs from rec.ecog, return (epochs, classes) aligned 1-to-1.\n\n\nepoch_recording\n\ndef epoch_recording(\n    rec, tmin:float=-0.5, tmax:float=2.0, signal:NoneType=None\n):\n\nEpoch signal (defaults to rec.ecog) using cues from rec.labels.",
+    "crumbs": [
+      "04. Epoching"
+    ]
+  },
+  {
+    "objectID": "epoching.html#visual-validation",
+    "href": "epoching.html#visual-validation",
+    "title": "04. Epoching",
+    "section": "Visual validation",
+    "text": "Visual validation\nAverage preprocessed ECoG across trials of each class for a single sensorimotor channel — the classic ERP-style view. Distinct per-class deflections after cue onset are the first sign that the data is decodable.\n\nimport matplotlib.pyplot as plt\nfrom br41n_ecog_hand_pose.data import load_ecog, GESTURE_NAMES\nfrom br41n_ecog_hand_pose.preprocessing import preprocess\n\nplt.rcParams.update({\n    'axes.grid':      True,\n    'grid.linestyle': ':',\n    'grid.linewidth': 0.5,\n    'grid.alpha':     0.6,\n})\n\n\nrec = load_ecog()\nclean, _ = preprocess(rec.ecog, rec.fs)\nepochs, classes = epoch_recording(rec, tmin=-0.5, tmax=2.0, signal=clean)\nprint(f'epochs:  {epochs.shape}     # (n_trials, n_channels, n_samples)')\nprint(f'classes: {classes.shape}    # one label per trial')\nfor c in [1, 2, 3]:\n    print(f'  {GESTURE_NAMES[c]:&gt;5}: {(classes == c).sum()} trials')\n\n\nch = 30\nn_samples = epochs.shape[-1]\nt = np.linspace(-0.5, 2.0, n_samples)\n\nfig, ax = plt.subplots(figsize=(8, 4))\nfor c in [1, 2, 3]:\n    mean_trace = epochs[classes == c, ch].mean(axis=0)\n    ax.plot(t, mean_trace, label=GESTURE_NAMES[c])\nax.axvline(0, color='k', lw=0.8, ls='--', label='cue onset')\nax.set_xlabel('time from cue onset (s)')\nax.set_ylabel(f'channel {ch} (\\u03bcV)')\nax.set_title('Trial-averaged preprocessed ECoG, by class')\nax.legend()\nplt.tight_layout(); plt.show()",
+    "crumbs": [
+      "04. Epoching"
+    ]
+  },
+  {
+    "objectID": "eda.html",
+    "href": "eda.html",
+    "title": "02. Exploratory Data Analysis",
+    "section": "",
+    "text": "from pathlib import Path\nimport numpy as np\nimport matplotlib.pyplot as plt\nfrom scipy.signal import welch\nfrom br41n_ecog_hand_pose.data import load_ecog, FS, GESTURE_NAMES, FINGER_NAMES\n\nplt.rcParams.update({\n    'axes.grid':      True,\n    'grid.linestyle': ':',\n    'grid.linewidth': 0.5,\n    'grid.alpha':     0.6,\n})\n\ndef _project_root():\n    for parent in [Path.cwd(), *Path.cwd().parents]:\n        if (parent / 'pyproject.toml').exists(): return parent\n    return Path.cwd()\n\nOUTPUT_DIR = _project_root() / 'outputs' / '02_eda'\nOUTPUT_DIR.mkdir(parents=True, exist_ok=True)",
+    "crumbs": [
+      "02. Exploratory Data Analysis"
+    ]
+  },
+  {
+    "objectID": "eda.html#setup",
+    "href": "eda.html#setup",
+    "title": "02. Exploratory Data Analysis",
+    "section": "",
+    "text": "from pathlib import Path\nimport numpy as np\nimport matplotlib.pyplot as plt\nfrom scipy.signal import welch\nfrom br41n_ecog_hand_pose.data import load_ecog, FS, GESTURE_NAMES, FINGER_NAMES\n\nplt.rcParams.update({\n    'axes.grid':      True,\n    'grid.linestyle': ':',\n    'grid.linewidth': 0.5,\n    'grid.alpha':     0.6,\n})\n\ndef _project_root():\n    for parent in [Path.cwd(), *Path.cwd().parents]:\n        if (parent / 'pyproject.toml').exists(): return parent\n    return Path.cwd()\n\nOUTPUT_DIR = _project_root() / 'outputs' / '02_eda'\nOUTPUT_DIR.mkdir(parents=True, exist_ok=True)",
+    "crumbs": [
+      "02. Exploratory Data Analysis"
+    ]
+  },
+  {
+    "objectID": "eda.html#load-the-recording",
+    "href": "eda.html#load-the-recording",
+    "title": "02. Exploratory Data Analysis",
+    "section": "Load the recording",
+    "text": "Load the recording\nLoad the full session once and reuse the resulting ECoGRecording for every plot below.\n\nrec = load_ecog()\nprint(f'duration:    {rec.duration_s:.1f} s  ({rec.n_samples:,} samples @ {rec.fs} Hz)')\nprint(f'ecog shape:  {rec.ecog.shape}')\nprint(f'glove shape: {rec.glove.shape}')",
+    "crumbs": [
+      "02. Exploratory Data Analysis"
+    ]
+  },
+  {
+    "objectID": "eda.html#label-timeline",
+    "href": "eda.html#label-timeline",
+    "title": "02. Exploratory Data Analysis",
+    "section": "Label timeline",
+    "text": "Label timeline\nVisualize CH62 across the full recording. Each non-zero plateau is a 2 s gesture cue; the gaps between are the 2–3 s rest screens. A clean rectangular pattern means cue detection in 04_epoching will be trivial.\n\nfig, ax = plt.subplots(figsize=(12, 2))\nax.plot(rec.time, rec.labels, lw=0.5)\nax.set_yticks([0, 1, 2, 3])\nax.set_yticklabels([GESTURE_NAMES[i] for i in [0, 1, 2, 3]])\nax.set_xlabel('time (s)')\nax.set_title('CH62 paradigm labels — full recording')\nfig.savefig(OUTPUT_DIR / '01_label_timeline.png', dpi=250, bbox_inches='tight')\nplt.tight_layout(); plt.show()\n\n\n\n\nLabel timeline\n\n\nObservations. The label channel is a textbook rectangular pulse train across the full ~7 minute recording. Plateaus are well-separated and uniform in duration, so detecting cue onsets via 0 → non-zero transitions in 04_epoching is straightforward — no debouncing or smoothing needed. Class assignment per cue is also unambiguous: each plateau holds a single integer code throughout its duration.",
+    "crumbs": [
+      "02. Exploratory Data Analysis"
+    ]
+  },
+  {
+    "objectID": "eda.html#trial-counts-per-class",
+    "href": "eda.html#trial-counts-per-class",
+    "title": "02. Exploratory Data Analysis",
+    "section": "Trial counts per class",
+    "text": "Trial counts per class\nCue onsets are samples where the label transitions 0 → {1, 2, 3}. Counting by class verifies the documented 90-trial paradigm and surfaces any class imbalance.\n\nlabels = rec.labels\nonsets = np.where((labels[1:] != 0) & (labels[:-1] == 0))[0] + 1\nclasses_at_onset = labels[onsets]\nuniq, counts = np.unique(classes_at_onset, return_counts=True)\nfor c, n in zip(uniq, counts):\n    print(f'{GESTURE_NAMES[c]:&gt;5}: {n} trials')\nprint(f'total: {len(onsets)} trials')\n\nfig, ax = plt.subplots(figsize=(5, 3))\nax.bar([GESTURE_NAMES[c] for c in uniq], counts)\nax.set_ylabel('trial count')\nax.set_title('Trials per gesture class')\nfig.savefig(OUTPUT_DIR / '02_trial_counts.png', dpi=250, bbox_inches='tight')\nplt.tight_layout(); plt.show()\n\n\n\n\nTrial counts per class\n\n\nObservations. Perfectly balanced: 30 trials per class, 90 total. No class re-weighting needed in any classifier, and stratified 5-fold CV gives exactly 6 trials per class per test fold. The relax code (0) doesn’t appear here because we count cues, not samples — the 0 state is the inter-trial rest screen, used as baseline rather than as a fourth class.",
+    "crumbs": [
+      "02. Exploratory Data Analysis"
+    ]
+  },
+  {
+    "objectID": "eda.html#per-channel-signal-stats",
+    "href": "eda.html#per-channel-signal-stats",
+    "title": "02. Exploratory Data Analysis",
+    "section": "Per-channel signal stats",
+    "text": "Per-channel signal stats\nPer-channel mean and std flag dead channels (std ≈ 0), saturated channels (std orders of magnitude above the rest), and DC drift (large mean offsets — expected here since the data is DC-coupled, but extreme values still indicate a problem).\n\nmean = rec.ecog.mean(axis=1)\nstd  = rec.ecog.std(axis=1)\nfig, axs = plt.subplots(2, 1, figsize=(10, 4), sharex=True)\naxs[0].bar(np.arange(60), mean); axs[0].set_ylabel('mean (\\u03bcV)')\naxs[1].bar(np.arange(60), std);  axs[1].set_ylabel('std (\\u03bcV)')\naxs[1].set_xlabel('channel index (0 = CH2)')\nfig.suptitle('Per-channel ECoG mean and std')\nfig.savefig(OUTPUT_DIR / '03_channel_stats.png', dpi=250, bbox_inches='tight')\nplt.tight_layout(); plt.show()\n\n\n\n\nPer-channel mean and std\n\n\nObservations. Mean values span roughly −110 000 to +75 000 μV — these are DC offsets from the DC-coupled recording, not signal. The bandpass in 03_preprocessing eliminates them entirely. Per-channel std varies ~10× across the 60-channel grid (≈ 600 → 5 800 μV); this is the natural amplitude variation across motor/sensory cortex, not a quality issue, since no channel collapses to ≈ 0 (which would indicate a dead electrode). The MAD-based find_bad_channels in 03 will pick up any outliers in the post-bandpass signal.",
+    "crumbs": [
+      "02. Exploratory Data Analysis"
+    ]
+  },
+  {
+    "objectID": "eda.html#spectral-overview-psd",
+    "href": "eda.html#spectral-overview-psd",
+    "title": "02. Exploratory Data Analysis",
+    "section": "Spectral overview (PSD)",
+    "text": "Spectral overview (PSD)\nWelch PSD per channel, overlaid. Two things to look for: line-noise peaks (50 or 60 Hz plus harmonics — informs the notch filter in 03_preprocessing), and channels whose spectrum is very different from the rest (candidates for rejection).\n\nfreqs, psd = welch(rec.ecog, fs=rec.fs, nperseg=2 * rec.fs)\nfig, ax = plt.subplots(figsize=(10, 4))\nax.semilogy(freqs, psd.T, lw=0.4, alpha=0.5)\nax.set_xlim(0, 200)\nax.set_xlabel('frequency (Hz)')\nax.set_ylabel('PSD (\\u03bcV\\u00b2/Hz)')\nax.set_title('Welch PSD per channel — line-noise peaks and channel outliers')\nfig.savefig(OUTPUT_DIR / '04_psd.png', dpi=250, bbox_inches='tight')\nplt.tight_layout(); plt.show()\n\n\n\n\nWelch PSD per channel\n\n\nObservations. - Strong 50 Hz line-noise peaks plus harmonics at 100 and 150 Hz — confirms a European recording site. The notch filter in 03_preprocessing is configured freq=50, harmonics=3, which removes all three peaks in one pass. - The high-gamma band (70–170 Hz) — the workhorse of ECoG hand decoding — is otherwise clean and follows a smooth 1/f decay between the line-noise notches. This is exactly what we want. - A small fraction of channels deviate from the bulk envelope (typically grid-edge channels picking up environmental noise). They didn’t trigger the bad-channel threshold, but worth revisiting if downstream accuracy plateaus.",
+    "crumbs": [
+      "02. Exploratory Data Analysis"
+    ]
+  },
+  {
+    "objectID": "eda.html#glove-traces-per-class",
+    "href": "eda.html#glove-traces-per-class",
+    "title": "02. Exploratory Data Analysis",
+    "section": "Glove traces per class",
+    "text": "Glove traces per class\nAverage finger flexion in a 5 s window after each cue onset, per gesture class. The three gestures should produce visibly distinct finger-flexion patterns (e.g. all fingers flexed for fist, only index+middle extended for peace). If the patterns aren’t separable here, no decoder is going to help.\n\nwindow_s = 5\nn_win = int(window_s * rec.fs)\nfig, axs = plt.subplots(3, 1, figsize=(8, 9), sharey=True, constrained_layout=True)\nfor ax, c in zip(axs, [1, 2, 3]):\n    trials = onsets[classes_at_onset == c]\n    trials = trials[trials + n_win &lt;= rec.glove.shape[1]]\n    snippets = np.stack([rec.glove[:, o:o + n_win] for o in trials])\n    mean_trace = snippets.mean(axis=0)\n    t_win = np.arange(n_win) / rec.fs\n    for fi, fname in enumerate(FINGER_NAMES):\n        ax.plot(t_win, mean_trace[fi], label=fname)\n    ax.set_title(f'{GESTURE_NAMES[c]} (n={len(trials)})')\n    ax.set_xlabel('time from cue onset (s)')\n    ax.set_ylabel('flexion')\n    ax.legend(fontsize=8, loc='best')\nfig.suptitle('Mean data-glove traces per gesture class')\nfig.savefig(OUTPUT_DIR / '05_glove_traces.png', dpi=250, bbox_inches='tight')\nplt.show()\n\n\n\n\nMean glove traces per gesture class\n\n\nObservations. - Reaction time ~400–500 ms. Movement starts well after the cue, not at t=0. For movement decoding, tighten the epoch window to e.g. tmin=0.5, tmax=2.5. For cue/intent decoding (the classification task) keep tmin=0 so the early premotor ECoG response is included. - open is kinematically flat. The hand barely moves above baseline during the open cue — its glove signal is indistinguishable from rest. Consequence for 08_finger_regression: the open trials contribute almost zero target variance, so per-finger Pearson r is dominated by fist/peace. Consider running regression on those two classes only for an honest decoding number. - Thumb decreases during fist (0.6 → 0.27). Anatomically expected — the thumb wraps over the curled fingers rather than flexing inward — but it means we can’t summarize “grip” by averaging across fingers. The Ridge regression in 08 predicts each finger independently, so it handles this correctly. - Trial-averaged patterns are highly stereotyped. Sharp transitions, consistent plateau heights across all 30 trials per class. The participant performed each gesture nearly identically every time, which means the ECoG correlates have high SNR after trial averaging. The bottleneck on decoding accuracy is sample count (30/class), not behavioral noise. - Resting baseline isn’t fully relaxed (thumb ~0.6, others ~0.15). If we ever want per-trial baselining for the regression, this is where it would help.",
+    "crumbs": [
+      "02. Exploratory Data Analysis"
+    ]
+  },
+  {
+    "objectID": "deep_learning.html#eegnet",
+    "href": "deep_learning.html#eegnet",
+    "title": "07. Deep Learning",
+    "section": "EEGNet",
+    "text": "EEGNet\nCompact two-block CNN from Lawhern et al. (2018). Block 1 learns a temporal filter then a per-electrode spatial filter; Block 2 is a separable convolution. Tiny by deep-learning standards (~2k parameters), which is what makes it fit 90 trials without overfitting catastrophically.\n\n\nEEGNet\n\ndef EEGNet(\n    n_classes, n_channels, n_samples, F1:int=8, D:int=2, F2:int=16, kernel_length:int=64, dropout:float=0.5\n):\n\nBase class for all neural network modules.\nYour models should also subclass this class.\nModules can also contain other Modules, allowing them to be nested in a tree structure. You can assign the submodules as regular attributes::\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nclass Model(nn.Module):\n    def __init__(self) -&gt; None:\n        super().__init__()\n        self.conv1 = nn.Conv2d(1, 20, 5)\n        self.conv2 = nn.Conv2d(20, 20, 5)\n\n    def forward(self, x):\n        x = F.relu(self.conv1(x))\n        return F.relu(self.conv2(x))\nSubmodules assigned in this way will be registered, and will also have their parameters converted when you call :meth:to, etc.\n.. note:: As per the example above, an __init__() call to the parent class must be made before assignment on the child.\n:ivar training: Boolean represents whether this module is in training or evaluation mode. :vartype training: bool",
+    "crumbs": [
+      "07. Deep Learning"
+    ]
+  },
+  {
+    "objectID": "deep_learning.html#training-loop",
+    "href": "deep_learning.html#training-loop",
+    "title": "07. Deep Learning",
+    "section": "Training loop",
+    "text": "Training loop\nPer-fold training: Adam, cross-entropy, fixed epoch count. Returns the trained model so the caller can run inference on a held-out fold.\n\n\ntrain_eegnet\n\ndef train_eegnet(\n    epochs, y, n_epochs:int=200, batch_size:int=16, lr:float=0.001, device:str='cpu', net_kwargs:VAR_KEYWORD\n):\n\nTrain an EEGNet on (trials, channels, samples) epochs with integer labels y.",
+    "crumbs": [
+      "07. Deep Learning"
+    ]
+  },
+  {
+    "objectID": "deep_learning.html#cross-validation",
+    "href": "deep_learning.html#cross-validation",
+    "title": "07. Deep Learning",
+    "section": "Cross-validation",
+    "text": "Cross-validation\nStratified k-fold mirroring 06_classification.cross_validate. Labels are remapped to 0..n_classes-1 per fold for the cross-entropy loss.\n\n\ncross_validate_eegnet\n\ndef cross_validate_eegnet(\n    epochs, classes, n_splits:int=5, random_state:int=0, device:str='cpu', train_kwargs:VAR_KEYWORD\n):\n\nStratified k-fold accuracy for EEGNet on (trials, channels, samples) epochs.",
+    "crumbs": [
+      "07. Deep Learning"
+    ]
+  },
+  {
+    "objectID": "deep_learning.html#run",
+    "href": "deep_learning.html#run",
+    "title": "07. Deep Learning",
+    "section": "Run",
+    "text": "Run\n\nfrom br41n_ecog_hand_pose.data import load_ecog\nfrom br41n_ecog_hand_pose.preprocessing import preprocess\nfrom br41n_ecog_hand_pose.epoching import epoch_recording\n\nrec = load_ecog()\nclean, _ = preprocess(rec.ecog, rec.fs)\nepochs, classes = epoch_recording(rec, tmin=0.0, tmax=2.0, signal=clean)\nprint(f'epochs {epochs.shape}, classes {classes.shape}')\n\n\naccs = cross_validate_eegnet(epochs.astype('float32'), classes, n_splits=5, n_epochs=300, lr=1e-3)\nprint(f'EEGNet 5-fold accuracy: {accs.mean():.3f} \\u00b1 {accs.std():.3f}')",
+    "crumbs": [
+      "07. Deep Learning"
+    ]
+  }
+]

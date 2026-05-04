@@ -1,0 +1,1 @@
+Sitemap: https://bkowshik.github.io/br41n-ecog-hand-pose/sitemap.xml
